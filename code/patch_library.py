@@ -1,9 +1,9 @@
 import numpy as np
 import random
 import os
-from glob import glob
-import matplotlib
-import matplotlib.pyplot as plt
+#from glob import glob
+#import matplotlib
+#import matplotlib.pyplot as plt
 from skimage import io
 from skimage.filters.rank import entropy
 from skimage.morphology import disk
@@ -37,14 +37,18 @@ class PatchLibrary(object):
         OUTPUT: (1) num_samples patches from class 'class_num' randomly selected.
         '''
         h,w = self.patch_size[0], self.patch_size[1]
+        print("num_patches: ",num_patches)
+        print("class_num: ",class_num)
         patches, labels = [], np.full(num_patches, class_num, 'float')
-        print 'Finding patches of class {}...'.format(class_num)
+        print ('Finding patches of class {}...'.format(class_num))
 
         ct = 0
         while ct < num_patches:
             im_path = random.choice(self.train_data)
+            print("im_path: ",im_path)
             fn = os.path.basename(im_path)
-            label = io.imread('Labels/' + fn[:-4] + 'L.png')
+            print("fn: ",fn)
+            label = io.imread('/Users/yuan/Documents/LM/Training/Labels/' + fn[:-4] + 'L.png')
 
             # resample if class_num not in selected slice
             # while len(np.argwhere(label == class_num)) < 10:
@@ -60,7 +64,7 @@ class PatchLibrary(object):
             p_ix = (p[0]-(h/2), p[0]+((h+1)/2), p[1]-(w/2), p[1]+((w+1)/2))
             patch = np.array([i[p_ix[0]:p_ix[1], p_ix[2]:p_ix[3]] for i in img])
 
-            # resample it patch is empty or too close to edge
+            # resample if patch is empty or too close to edge
             # while patch.shape != (4, h, w) or len(np.unique(patch)) == 1:
             #     p = random.choice(np.argwhere(label == class_num))
             #     p_ix = (p[0]-(h/2), p[0]+((h+1)/2), p[1]-(w/2), p[1]+((w+1)/2))
@@ -148,14 +152,14 @@ class PatchLibrary(object):
                 (2) y: labels (num_samples,)
         '''
         if balanced_classes:
-            per_class = self.num_samples / len(classes)
+            per_class = int(self.num_samples / len(classes))
             patches, labels = [], []
             progress.currval = 0
-            for i in progress(xrange(len(classes))):
+            for i in progress(range(len(classes))):
                 p, l = self.find_patches(classes[i], per_class)
                 # set 0 <= pix intensity <= 1
-                for img_ix in xrange(len(p)):
-                    for slice in xrange(len(p[img_ix])):
+                for img_ix in range(len(p)):
+                    for slice in range(len(p[img_ix])):
                         if np.max(p[img_ix][slice]) != 0:
                             p[img_ix][slice] /= np.max(p[img_ix][slice])
                 patches.append(p)
@@ -163,7 +167,7 @@ class PatchLibrary(object):
             return np.array(patches).reshape(self.num_samples, 4, self.h, self.w), np.array(labels).reshape(self.num_samples)
 
         else:
-            print "Use balanced classes, random won't work."
+            print ("Use balanced classes, random won't work.")
 
 
 

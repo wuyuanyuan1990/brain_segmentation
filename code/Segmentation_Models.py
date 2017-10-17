@@ -1,22 +1,23 @@
 import numpy as np
-import random
+#import random
 import json
-import h5py
+#import h5py
 from patch_library import PatchLibrary
 from glob import glob
 import matplotlib.pyplot as plt
 from skimage import io, color, img_as_float
 from skimage.exposure import adjust_gamma
-from skimage.segmentation import mark_boundaries
+#from skimage.segmentation import mark_boundaries
 from sklearn.feature_extraction.image import extract_patches_2d
 from sklearn.metrics import classification_report
-from keras.models import Sequential, Graph, model_from_json
+from keras.models import Sequential, model_from_json
+from keras.models import Graph
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.layers.core import Dense, Dropout, Activation, Flatten, Merge, Reshape, MaxoutDense
 from keras.layers.normalization import BatchNormalization
 from keras.regularizers import l1l2
 from keras.optimizers import SGD
-from keras.constraints import maxnorm
+#from keras.constraints import maxnorm
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.utils import np_utils
 
@@ -58,7 +59,7 @@ class SegmentationModel(object):
         '''
         compiles standard single model with 4 convolitional/max-pooling layers.
         '''
-        print 'Compiling single model...'
+        print ('Compiling single model...')
         single = Sequential()
 
         single.add(Convolution2D(self.n_filters[0], self.k_dims[0], self.k_dims[0], border_mode='valid', W_regularizer=l1l2(l1=self.w_reg, l2=self.w_reg), input_shape=(self.n_chan,33,33)))
@@ -83,14 +84,14 @@ class SegmentationModel(object):
 
         sgd = SGD(lr=0.001, decay=0.01, momentum=0.9)
         single.compile(loss='categorical_crossentropy', optimizer='sgd')
-        print 'Done.'
+        print ('Done.')
         return single
 
     def comp_two_path(self):
         '''
         compiles two-path model, takes in a 4x33x33 patch and assesses global and local paths, then merges the results.
         '''
-        print 'Compiling two-path model...'
+        print ('Compiling two-path model...')
         model = Graph()
         model.add_input(name='input', input_shape=(self.n_chan, 33, 33))
 
@@ -118,14 +119,14 @@ class SegmentationModel(object):
 
         sgd = SGD(lr=0.005, decay=0.1, momentum=0.9)
         model.compile('sgd', loss={'output':'categorical_crossentropy'})
-        print 'Done.'
+        print ('Done.')
         return model
 
     def comp_double(self):
         '''
         double model. Simialar to two-pathway, except takes in a 4x33x33 patch and it's center 4x5x5 patch. merges paths at flatten layer.
         '''
-        print 'Compiling double model...'
+        print ('Compiling double model...')
         single = Sequential()
         single.add(Convolution2D(64, 7, 7, border_mode='valid', W_regularizer=l1l2(l1=0.01, l2=0.01), input_shape=(4,33,33)))
         single.add(Activation('relu'))
@@ -159,7 +160,7 @@ class SegmentationModel(object):
 
         sgd = SGD(lr=0.001, decay=0.01, momentum=0.9)
         model.compile(loss='categorical_crossentropy', optimizer='sgd')
-        print 'Done.'
+        print ('Done.')
         return model
 
     def load_model_weights(self, model_name):
@@ -167,14 +168,14 @@ class SegmentationModel(object):
         INPUT  (1) string 'model_name': filepath to model and weights, not including extension
         OUTPUT: Model with loaded weights. can fit on model using loaded_model=True in fit_model method
         '''
-        print 'Loading model {}'.format(model_name)
+        print ('Loading model {}'.format(model_name))
         model = '{}.json'.format(model_name)
         weights = '{}.hdf5'.format(model_name)
         with open(model) as f:
             m = f.next()
         model_comp = model_from_json(json.loads(m))
         model_comp.load_weights(weights)
-        print 'Done.'
+        print ('Done.')
         return model_comp
 
     def fit_model(self, X_train, y_train, X5_train = None, save=True):
@@ -189,8 +190,8 @@ class SegmentationModel(object):
         shuffle = zip(X_train, Y_train)
         np.random.shuffle(shuffle)
 
-        X_train = np.array([shuffle[i][0] for i in xrange(len(shuffle))])
-        Y_train = np.array([shuffle[i][1] for i in xrange(len(shuffle))])
+        X_train = np.array([shuffle[i][0] for i in range(len(shuffle))])
+        Y_train = np.array([shuffle[i][1] for i in range(len(shuffle))])
         es = EarlyStopping(monitor='val_loss', patience=2, verbose=1, mode='auto')
 
         # Save model after each epoch to check/bm_epoch#-val_loss
@@ -224,7 +225,7 @@ class SegmentationModel(object):
         OUTPUT  (1) confusion matrix of precision, recall and f1 score
         '''
         y_pred = self.model_load.predict_class(X_test)
-        print classification_report(y_pred, y_test)
+        print (classification_report(y_pred, y_test))
 
     def predict_image(self, test_img, show=False):
         '''
@@ -286,13 +287,13 @@ class SegmentationModel(object):
         blue_multiplier = [0,0.25,0.9]
 
         # change colors of segmented classes
-        for i in xrange(len(ones)):
+        for i in range(len(ones)):
             sliced_image[ones[i][0]][ones[i][1]] = red_multiplier
-        for i in xrange(len(twos)):
+        for i in range(len(twos)):
             sliced_image[twos[i][0]][twos[i][1]] = green_multiplier
-        for i in xrange(len(threes)):
+        for i in range(len(threes)):
             sliced_image[threes[i][0]][threes[i][1]] = blue_multiplier
-        for i in xrange(len(fours)):
+        for i in range(len(fours)):
             sliced_image[fours[i][0]][fours[i][1]] = yellow_multiplier
 
         if show:
@@ -362,19 +363,20 @@ class SegmentationModel(object):
         gtcore, segcore = np.array(gt_core), np.array(seg_core)
         core = len(np.argwhere(gtcore == segcore)) / float(len(core_gt))
 
-        print ' '
-        print 'Region_______________________| Dice Coefficient'
-        print 'Total Slice__________________| {0:.2f}'.format(total)
-        print 'No Background gt_____________| {0:.2f}'.format(tumor_assoc_gt)
-        print 'No Background both___________| {0:.2f}'.format(tumor_assoc)
-        print 'Advancing Tumor______________| {0:.2f}'.format(adv)
-        print 'Core Tumor___________________| {0:.2f}'.format(core)
+        print (' ')
+        print ('Region_______________________| Dice Coefficient')
+        print ('Total Slice__________________| {0:.2f}'.format(total))
+        print ('No Background gt_____________| {0:.2f}'.format(tumor_assoc_gt))
+        print ('No Background both___________| {0:.2f}'.format(tumor_assoc))
+        print ('Advancing Tumor______________| {0:.2f}'.format(adv))
+        print ('Core Tumor___________________| {0:.2f}'.format(core))
+
 
 if __name__ == '__main__':
-    train_data = glob('train_data/**')
+    train_data = glob('/Users/yuan/Documents/LM/Training/HGG/**')
     patches = PatchLibrary((33,33), train_data, 50000)
     X,y = patches.make_training_patches()
-
+    
     model = SegmentationModel()
     model.fit_model(X, y)
     model.save_model('models/example')
